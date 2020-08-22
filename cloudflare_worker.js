@@ -137,7 +137,7 @@ function dec2hex (dec) {
 }
 
 function generateRandom(){
-  let array = new Uint32Array(8);
+  let array = new Uint32Array(16);
   crypto.getRandomValues(array);
   return Array.from(array, dec2hex).join('');
 }
@@ -184,7 +184,8 @@ async function handleRevealRequest(request) {
   if (!response) {
     return new Response('URL is invalid or secret has expired from cache');
   } else {
-    return response;
+    let jsonBody = await response.json();
+    return new Response(jsonBody.secret);
   }
 };
 
