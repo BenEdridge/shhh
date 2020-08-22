@@ -1,5 +1,5 @@
 // https://developers.cloudflare.com/workers/examples/cache-api
-// https://blog.cloudflare.com/introducing-the-workers-cache-api-giving-you-control-over-how-your-content-is-cached/
+//https://blog.cloudflare.com/introducing-the-workers-cache-api-giving-you-control-over-how-your-content-is-cached/
 
 let cache = caches.default;
 
@@ -130,8 +130,16 @@ input[type=submit] {
 </html>
 `;
 
+function dec2hex (dec) {
+  return dec < 10
+    ? '0' + String(dec)
+    : dec.toString(16)
+}
+
 function generateRandom(){
-  return '1234567';
+  let array = new Uint32Array(8);
+  crypto.getRandomValues(array);
+  return Array.from(array, dec2hex).join('');
 }
 
 async function handleShareRequest(event) {
@@ -142,6 +150,11 @@ async function handleShareRequest(event) {
   const randomisedCacheUrl = `https://polished-term-6b3e.boost.workers.dev/reveal/${generateRandom()}`;
 
   const reqBody = await readRequestBody(request);
+
+  if(reqBody.expiry > 86401 && !reqBody.secret){
+    return new Response('Invalid Request');
+  }
+
   let response = await cache.match(randomisedCacheUrl)
 
   if (!response) {
@@ -150,11 +163,12 @@ async function handleShareRequest(event) {
 
     // Cache API respects Cache-Control headers. Setting max-age to 10
     // will limit the response to be in cache for 10 seconds max
-    response.headers.append("Cache-Control", "max-age=30")
+    response.headers.append("Cache-Control", `max-age=${reqBody.expiry}`)
 
     // Store the fetched response as cacheKey
     // Use waitUntil so computational expensive tasks don"t delay the response
     event.waitUntil(cache.put(randomisedCacheUrl, response.clone()))
+
     return new Response(randomisedCacheUrl);
 
   } else {
@@ -165,9 +179,7 @@ async function handleShareRequest(event) {
 async function handleRevealRequest(request) {
 
   const cacheUrl = new URL(request.url);
-  const randomisedCacheUrl = `https://polished-term-6b3e.boost.workers.dev/reveal/${generateRandom()}`;
-
-  let response = await cache.match(randomisedCacheUrl);
+  let response = await cache.match(cacheUrl);
 
   if (!response) {
     return new Response('URL is invalid or secret has expired from cache');
