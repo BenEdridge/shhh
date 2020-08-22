@@ -169,7 +169,59 @@ async function handleShareRequest(event) {
     // Use waitUntil so computational expensive tasks don"t delay the response
     event.waitUntil(cache.put(randomisedCacheUrl, response.clone()))
 
-    return new Response(randomisedCacheUrl);
+    const shareHtml =`
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <style>
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-top: 6px;
+      margin-bottom: 16px;
+    }
+    
+    button {
+      background-color: #4CAF50;
+      color: white;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-top: 6px;
+      margin-bottom: 16px;
+    }
+    .container {
+      background-color: #f1f1f1;
+      padding: 20px;
+    }
+    
+    </style>
+    </head>
+    <body class="container">
+    <div>
+    <input id="url" value="${randomisedCacheUrl}" size="128" readonly/>
+    </div>
+    <button onclick="clipboard()">Copy</button>
+    <script>
+    function clipboard() {
+      var copyText = document.getElementById("url");
+      copyText.select();
+      copyText.setSelectionRange(0, 99999)
+      document.execCommand("copy");
+      alert("Copied URL");
+    }
+    </script>
+    </body>
+    </html>
+    `;
+
+    return rawHtmlResponse(shareHtml);
 
   } else {
     return new Response('This secret is stored please use the /reveal endpoint to consume it');
@@ -185,6 +237,10 @@ async function handleRevealRequest(request) {
     return new Response('URL is invalid or secret has expired from cache');
   } else {
     let jsonBody = await response.json();
+
+    // Prevent multiple reads (Could possibly configure this to n reads)
+    cache.delete(cacheUrl);
+
     return new Response(jsonBody.secret);
   }
 };
