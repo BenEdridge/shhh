@@ -139,7 +139,7 @@ input[type=submit] {
   <form action="share" method="POST">
     <label for="secret">Secret</label>
     
-    <textarea id="secret" name="secret" rows="5" required></textarea>
+    <textarea id="secret" name="secret" rows="5" spellcheck="false" required></textarea>
     
     <label for="password">Encryption Password</label>
     <input type="password" id="password" name="password">

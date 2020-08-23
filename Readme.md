@@ -1,3 +1,5 @@
+![alt text](shhh.png "Title")
+
 # Get Started
 
 1. `npm i` to install wrangler CLI
@@ -5,3 +7,8 @@
 3. `wrangler login`
 4. `wrangler publish`
 5. Open URL
+
+# Features
+
+- HTTPS and AES256-GCM encryption
+- Password Encryption from a PBKDF2 Derived Key
