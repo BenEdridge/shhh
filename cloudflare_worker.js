@@ -327,7 +327,7 @@ async function handleRevealRequest(request) {
           decryptedData = await decryptFromPassword(reqBodyObj.password, toDecrypt.secret, ivArray, saltArray);
 
           // Prevent multiple reads (Could possibly configure this to n reads)
-          cache.delete(cacheUrl);
+          cache.delete(revealURL);
           return new Response(decryptedData);
 
         } else {
@@ -337,7 +337,7 @@ async function handleRevealRequest(request) {
           decryptedData = await decrypt(toDecrypt.secret, ivArray, aesKey);
 
           // Prevent multiple reads (Could possibly configure this to n reads)
-          cache.delete(cacheUrl);
+          cache.delete(revealURL);
           return new Response(decryptedData);
         }
 
