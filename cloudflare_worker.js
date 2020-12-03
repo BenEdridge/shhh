@@ -7,11 +7,9 @@ import * as cryptoHelper from './crypto.js';
 import * as html from './html.js';
 import pkg from './package.json';
 
-let cache = caches.default;
-
 addEventListener("fetch", event => {
-  const { request } = event
-  const { url } = request
+  const { request } = event;
+  const { url } = request;
 
   if (request.method === "GET") {
     if (url.includes("/reveal")) {
@@ -72,6 +70,8 @@ async function handleShareRequest(event) {
   const reqBody = await readRequestBody(request);
   const reqBodyObj = JSON.parse(reqBody);
 
+  const deleteOnRead = true;
+
   let iv = new Uint8Array(12);
   await crypto.getRandomValues(iv);
   const hexStringIv = Array.from(iv, cryptoHelper.dec2hex).join('');
@@ -96,45 +96,37 @@ async function handleShareRequest(event) {
     return new Response('Invalid Request');
   }
 
-  let response = await cache.match(randomisedCacheUrl)
+  let encryptedData;
 
-  if (!response) {
-
-    let encryptedData;
-
-    // device pbkdf2 key instead and use password for encryption
-    if (reqBodyObj.password === '') {
-      encryptedData = await cryptoHelper.encrypt(reqBodyObj.secret, iv, aesKey);
-    } else {
-      encryptedData = await cryptoHelper.encryptFromPassword(reqBodyObj.password, reqBodyObj.secret, iv, salt);
-    }
-    const respData = JSON.stringify({
-      secret: encryptedData,
-    });
-
-    response = new Response(respData);
-
-    // Cache API respects Cache-Control headers
-    response.headers.append("Cache-Control", `public, max-age=${reqBodyObj.expiry}`);
-
-    // Store the fetched response as cacheKey
-    // Use waitUntil so computational expensive tasks don"t delay the response
-    event.waitUntil(cache.put(randomisedCacheUrl, response.clone()));
-
-    return rawHtmlResponse(html.buildSharePage(randomisedCacheUrl));
-
+  // device pbkdf2 key instead and use password for encryption
+  if (reqBodyObj.password === '') {
+    encryptedData = await cryptoHelper.encrypt(reqBodyObj.secret, iv, aesKey);
   } else {
-    return new Response('This secret is stored please use the /reveal endpoint to consume it');
+    encryptedData = await cryptoHelper.encryptFromPassword(reqBodyObj.password, reqBodyObj.secret, iv, salt);
   }
+  const respData = JSON.stringify({
+    secret: encryptedData,
+  });
+
+  const meta = JSON.stringify({hexStringIv, hexStringSalt, deleteOnRead });
+
+  // Store the fetched response as cacheKey
+  // Use waitUntil so computational expensive tasks don"t delay the response
+  await SHHH.put(randomisedCacheUrl, respData, { 
+    expirationTtl: reqBodyObj.expiry,
+    metadata: meta
+  });
+
+  return rawHtmlResponse(html.buildSharePage(randomisedCacheUrl));
 }
 
 async function handleRevealRequest(request) {
 
   const revealURL = new URL(request.url);
-  let response = await cache.match(request);
+  let response = await SHHH.get(revealURL, 'json');
 
-  if (!response) {
-    return new Response('URL is invalid or secret has expired from cache');
+  if (response === null || !response.secret) {
+    return new Response(`URL is invalid or secret has expired`);
   } else {
 
     let decryptedData;
@@ -155,26 +147,28 @@ async function handleRevealRequest(request) {
           const reqBodyObj = JSON.parse(reqBody);
 
           const saltArray = cryptoHelper.fromHexString(pathSplit[4]);
-          const toDecrypt = await response.json();
-          decryptedData = await cryptoHelper.decryptFromPassword(reqBodyObj.password, toDecrypt.secret, ivArray, saltArray);
+          decryptedData = await cryptoHelper.decryptFromPassword(reqBodyObj.password, response.secret, ivArray, saltArray);
 
-          // Prevent multiple reads (Could possibly configure this to n reads)
-          // cache.delete(revealURL);
+          // if (metadata.deleteOnRead) {
+          //   await NAMESPACE.delete(revealURL);
+          // }
           return new Response(decryptedData);
 
         } else {
           const key = cryptoHelper.fromDecString(AES_KEY);
           const aesKey = await cryptoHelper.importAESKey(key);
-          const toDecrypt = await response.json();
-          decryptedData = await cryptoHelper.decrypt(toDecrypt.secret, ivArray, aesKey);
+          decryptedData = await cryptoHelper.decrypt(response.secret, ivArray, aesKey);
 
           // Prevent multiple reads (Could possibly configure this to n reads)
-          // cache.delete(revealURL);
+          // if (metadata.deleteOnRead) {
+          //   await NAMESPACE.delete(revealURL);
+          // }
+
           return new Response(decryptedData);
         }
 
       } catch (e) {
-        return new Response('Revealing Secret Failed');
+        return new Response(e);
       }
     }
   }
