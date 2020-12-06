@@ -1,4 +1,6 @@
-const buildHTML = (style, script, body, version) => {
+import pkg from './package.json';
+
+const buildHTML = (style, script, body) => {
   return `
     <!DOCTYPE html>
     <html>
@@ -10,14 +12,14 @@ const buildHTML = (style, script, body, version) => {
     <body>${body}
     
     <footer>
-    <p hidden>Version: ${version}</p>
+    <p hidden>${pkg.name}:${pkg.version}</p>
     </footer>
     </body>
     </html>
   `;
 };
 
-const buildMainPage = (version) => {
+const buildMainPage = () => {
 
   const mainPageStyle = `
     textarea {
@@ -42,6 +44,14 @@ const buildMainPage = (version) => {
     }
 
     input[type="radio"] {
+      width: 10px;
+      border: 1px solid #ccc;
+      border-radius: 2px;
+      box-sizing: border-box;
+      margin-top: 10px;
+    }
+
+    input[type="checkbox"] {
       width: 10px;
       border: 1px solid #ccc;
       border-radius: 2px;
@@ -86,7 +96,7 @@ const buildMainPage = (version) => {
         <textarea id="secret" name="secret" rows="5" spellcheck="false" required></textarea>
         
         <label for="password">Encryption Password</label>
-        <input type="password" id="password" name="password">
+        <input type="password" id="password" name="password" pattern=".{8,}" minlength="8" title="8 characters minimum">
         
         <label for="radios">Expiry</label>
         <div class="radios">
@@ -99,16 +109,20 @@ const buildMainPage = (version) => {
 
           <input id="radio3" type="radio" name="expiry" value="86400">
           <label for="radio3">24 Hours</label><br>
+
+          <input id="tickbox" type="checkbox" name="delete" checked="checked">
+          <label for="tickbox">Delete after read</label><br>
+
         </div>
         <input type="submit" value="Share">
       </form>
     </div>
   `;
 
-  return buildHTML(mainPageStyle, '', mainHtml, version);
+  return buildHTML(mainPageStyle, '', mainHtml);
 };
 
-const buildSharePage = (randomisedCacheUrl) => {
+const buildSharePage = (secureRandomStorageKey) => {
 
   const shareHtmlStyle = `
     input {
@@ -142,14 +156,14 @@ const buildSharePage = (randomisedCacheUrl) => {
   const shareHtmlBody = `
     <body class="container">
     <div>
-    <input id="url" value="${randomisedCacheUrl}" size="128" readonly/>
+    <input id="url" value="https://shhh.benedridge.com/reveal/${secureRandomStorageKey}" size="128" readonly/>
     </div>
     <button onclick="clipboard()">Copy</button>
     <script>
     function clipboard() {
       var copyText = document.getElementById("url");
       copyText.select();
-      copyText.setSelectionRange(0, 99999)
+      copyText.setSelectionRange(0, 99999);
       document.execCommand("copy");
       alert("Copied URL");
     }
