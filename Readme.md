@@ -13,4 +13,6 @@ https://shhh.boost.workers.dev/
 # Features
 
 - HTTPS and AES256-GCM encryption
-- Password Encryption from a PBKDF2 Derived Key
+- Optional Password Encryption from a PBKDF2 Derived Key
+- Expiry using KV TTL
+- Delete on Read
