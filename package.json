@@ -20,6 +20,6 @@
   },
   "homepage": "https://github.com/BenEdridge/shhh#readme",
   "devDependencies": {
-    "@cloudflare/wrangler": "^1.11.0"
+    "@cloudflare/wrangler": "^1.12.2"
   }
 }
