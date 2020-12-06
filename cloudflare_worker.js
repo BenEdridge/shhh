@@ -120,7 +120,7 @@ async function handleRevealRequest(request) {
   let { value, metadata } = await SHHH.getWithMetadata(secureKey, 'json');
 
   if (value === null || metadata === null || !value.secret) {
-    return new Response(`URL is invalid or secret has expired`);
+    return new Response(`URL is invalid, secret has expired or delete after read is enabled`);
   }
 
   let decryptedData;
@@ -146,7 +146,7 @@ async function handleRevealRequest(request) {
         decryptedData = await cryptoHelper.decrypt(value.secret, ivArray);
       }
 
-      if (metadata.deleteOnRead === 'true') { await SHHH.delete(secureKey); }
+      if (metadata.deleteOnRead === 'on') { await SHHH.delete(secureKey); }
       return new Response(decryptedData);
 
     } catch (e) {
