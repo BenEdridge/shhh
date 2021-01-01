@@ -3,3 +3,6 @@ name = "shhh"
 account_id = ";"
 workers_dev = true
 webpack_config = "webpack.config.js"
+kv_namespaces = [
+  { binding = "SHHH", id = "123456789"}
+]
